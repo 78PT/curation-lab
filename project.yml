@@ -1,0 +1,14 @@
+name: CurationLab
+options:
+  bundleIdPrefix: com.pranavtiwari
+targets:
+  CurationLab:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources: [CurationLab]
+    settings:
+      INFOPLIST_FILE: CurationLab/Info.plist
+      PRODUCT_BUNDLE_IDENTIFIER: com.pranavtiwari.CurationLab
+      DEVELOPMENT_TEAM: "A7V5TM4Q6S"
+      CODE_SIGN_STYLE: Automatic

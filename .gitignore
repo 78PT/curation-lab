@@ -1,0 +1,33 @@
+# OS X
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcworkspace/
+!default.xcworkspace/
+
+# XcodeGen
+CurationLab.xcodeproj/
+
+# Secrets Config
+CurationLab/Keys.plist
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Miscellaneous
+*.log
