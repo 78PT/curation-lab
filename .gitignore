@@ -20,7 +20,7 @@ xcuserdata/
 !default.xcworkspace/
 
 # XcodeGen
-CurationLab.xcodeproj/
+# CurationLab.xcodeproj/
 
 # Secrets Config
 CurationLab/Keys.plist
