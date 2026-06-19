@@ -53,7 +53,7 @@ public struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                     Slider(value: $libraryService.timeGapHours, in: 1...24, step: 0.5)
-                        .onChange(of: libraryService.timeGapHours) { _ in
+                        .onChange(of: libraryService.timeGapHours) {
                             libraryService.rebuildClusters()
                         }
                     
@@ -64,7 +64,7 @@ public struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                     Slider(value: $libraryService.distanceGapMeters, in: 100...5000, step: 100)
-                        .onChange(of: libraryService.distanceGapMeters) { _ in
+                        .onChange(of: libraryService.distanceGapMeters) {
                             libraryService.rebuildClusters()
                         }
                     
