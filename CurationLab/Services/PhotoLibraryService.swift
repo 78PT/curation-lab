@@ -6,14 +6,19 @@ import CoreLocation
 
 public class PhotoLibraryService: ObservableObject {
     @Published public var permissionStatus: PHAuthorizationStatus = .notDetermined
-    @Published public var rawAssets: [PhotoAsset] = []
+    @Published public var loadedAssets: [PhotoAsset] = []
     @Published public var eventClusters: [EventCluster] = []
     @Published public var isLoading: Bool = false
     
-    // Clustering configurations (adjustable via Settings)
+    // Clustering configurations (retained for backward compatibility)
     @Published public var timeGapHours: Double = 4.0
-    @Published public var distanceGapMeters: Double = 1000.0 // 1 km
+    @Published public var distanceGapMeters: Double = 1000.0
     
+    // Internal cache of analyzed PhotoAssets to avoid re-running Vision/EXIF extraction
+    private var analysisCache: [String: PhotoAsset] = [:]
+    
+    // PHFetchResult storing reference to all device photos lazily
+    private var allPHAssets: PHFetchResult<PHAsset>? = nil
     private let imageManager = PHCachingImageManager()
     
     public init() {
@@ -25,7 +30,7 @@ public class PhotoLibraryService: ObservableObject {
         DispatchQueue.main.async {
             self.permissionStatus = status
             if status == .authorized || status == .limited {
-                self.fetchPhotosAndCluster()
+                self.initializeFetchResult()
             }
         }
     }
@@ -35,14 +40,14 @@ public class PhotoLibraryService: ObservableObject {
             DispatchQueue.main.async {
                 self.permissionStatus = status
                 if status == .authorized || status == .limited {
-                    self.fetchPhotosAndCluster()
+                    self.initializeFetchResult()
                 }
             }
         }
     }
     
-    /// Fetches assets, extracts basic info, and clusters them.
-    public func fetchPhotosAndCluster() {
+    /// Initializes the PHFetchResult lazily and loads the first batch of photos.
+    public func initializeFetchResult() {
         DispatchQueue.main.async {
             self.isLoading = true
         }
@@ -53,35 +58,88 @@ public class PhotoLibraryService: ObservableObject {
             fetchOptions.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
             
             let fetchResult = PHAsset.fetchAssets(with: fetchOptions)
-            var assets: [PhotoAsset] = []
-            
-            fetchResult.enumerateObjects { phAsset, _, _ in
-                assets.append(PhotoAsset(phAsset: phAsset))
-            }
             
             DispatchQueue.main.async {
-                self.rawAssets = assets
-                self.rebuildClusters()
+                self.allPHAssets = fetchResult
+                self.loadedAssets = []
+                self.loadNextBatch(limit: 80)
             }
         }
     }
     
-    /// Re-runs the event clustering algorithm based on current parameters.
-    public func rebuildClusters() {
-        guard !rawAssets.isEmpty else {
-            DispatchQueue.main.async {
-                self.eventClusters = []
-                self.isLoading = false
-            }
+    /// Loads the next batch of assets lazily, integrating cached vision analysis if available.
+    public func loadNextBatch(limit: Int = 80) {
+        guard let fetchResult = allPHAssets else {
+            self.isLoading = false
             return
         }
         
-        let assets = self.rawAssets
+        let currentCount = loadedAssets.count
+        guard currentCount < fetchResult.count else {
+            self.isLoading = false
+            return
+        }
+        
+        self.isLoading = true
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            let startIndex = currentCount
+            let endIndex = min(startIndex + limit, fetchResult.count)
+            var newAssets: [PhotoAsset] = []
+            
+            for index in startIndex..<endIndex {
+                let phAsset = fetchResult.object(at: index)
+                var asset = PhotoAsset(phAsset: phAsset)
+                
+                // Inject cached analysis results if we already computed them in this session
+                if let cached = self.analysisCache[phAsset.localIdentifier] {
+                    asset.aestheticScore = cached.aestheticScore
+                    asset.isUtility = cached.isUtility
+                    asset.tags = cached.tags
+                    asset.isClassified = cached.isClassified
+                    asset.isAestheticAnalyzed = cached.isAestheticAnalyzed
+                    asset.exifMetadata = cached.exifMetadata
+                }
+                newAssets.append(asset)
+            }
+            
+            DispatchQueue.main.async {
+                self.loadedAssets.append(contentsOf: newAssets)
+                self.isLoading = false
+                
+                // For backward compatibility, trigger a lazy rebuild of event clusters if needed
+                self.rebuildClustersLazy()
+            }
+        }
+    }
+    
+    /// Caches an asset that has undergone Vision analysis and updates it in the loadedAssets list.
+    public func cacheAnalyzedAsset(_ asset: PhotoAsset) {
+        DispatchQueue.main.async {
+            self.analysisCache[asset.localIdentifier] = asset
+            if let index = self.loadedAssets.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) {
+                self.loadedAssets[index] = asset
+            }
+        }
+    }
+    
+    /// Forces re-fetching all photos (e.g. from developer options)
+    public func fetchPhotosAndCluster() {
+        initializeFetchResult()
+    }
+    
+    /// Re-runs the event clustering algorithm based on current parameters lazily.
+    public func rebuildClustersLazy() {
+        guard !loadedAssets.isEmpty else {
+            self.eventClusters = []
+            return
+        }
+        
+        let assets = self.loadedAssets
         let timeGap = self.timeGapHours * 60 * 60
         let distanceGap = self.distanceGapMeters
         
-        DispatchQueue.global(qos: .userInteractive).async {
-            // Sort assets ascending by date for chronological group iteration
+        DispatchQueue.global(qos: .utility).async {
             let sortedAssets = assets.sorted { (lhs, rhs) -> Bool in
                 guard let lDate = lhs.creationDate else { return false }
                 guard let rDate = rhs.creationDate else { return true }
@@ -103,14 +161,12 @@ public class PhotoLibraryService: ObservableObject {
                 if let currentDate = asset.creationDate, let lastDate = lastAsset.creationDate {
                     let timeDiff = currentDate.timeIntervalSince(lastDate)
                     if timeDiff <= timeGap {
-                        // Check distance proximity if both photos have GPS logs
                         if let currentLoc = asset.location, let lastLoc = lastAsset.location {
                             let distance = currentLoc.distance(from: lastLoc)
                             if distance <= distanceGap {
                                 shouldGroup = true
                             }
                         } else {
-                            // If either lacks GPS, fall back to time clustering only
                             shouldGroup = true
                         }
                     }
@@ -128,14 +184,16 @@ public class PhotoLibraryService: ObservableObject {
                 clusters.append(self.createCluster(from: currentGroup))
             }
             
-            // Sort clusters chronologically descending (newest events first)
             let finalClusters = clusters.sorted { $0.startDate > $1.startDate }
             
             DispatchQueue.main.async {
                 self.eventClusters = finalClusters
-                self.isLoading = false
             }
         }
+    }
+    
+    public func rebuildClusters() {
+        rebuildClustersLazy()
     }
     
     private func createCluster(from assets: [PhotoAsset]) -> EventCluster {
@@ -149,7 +207,6 @@ public class PhotoLibraryService: ObservableObject {
         var locationText = "No Location Logs"
         let locations = assets.compactMap { $0.location }
         if !locations.isEmpty {
-            // Use reverse geocoder in real apps, but coordinates are solid for a tester
             let lat = locations.first!.coordinate.latitude
             let lon = locations.first!.coordinate.longitude
             locationText = String(format: "📍 Lat: %.3f, Lon: %.3f", lat, lon)
@@ -159,12 +216,30 @@ public class PhotoLibraryService: ObservableObject {
         return EventCluster(assets: assets, name: name, locationName: locationText)
     }
     
-    /// Requests thumbnail image for grid display.
+    /// Requests thumbnail image for grid display (could deliver multiple times for performance).
     @discardableResult
     public func fetchThumbnail(for asset: PhotoAsset, size: CGSize, completion: @escaping (UIImage?) -> Void) -> PHImageRequestID {
         let options = PHImageRequestOptions()
         options.isNetworkAccessAllowed = true
         options.deliveryMode = .opportunistic
+        options.resizeMode = .fast
+        
+        return imageManager.requestImage(
+            for: asset.phAsset,
+            targetSize: size,
+            contentMode: .aspectFill,
+            options: options
+        ) { image, _ in
+            completion(image)
+        }
+    }
+    
+    /// Requests thumbnail image with high quality delivery (exactly one callback).
+    @discardableResult
+    public func fetchSingleThumbnail(for asset: PhotoAsset, size: CGSize, completion: @escaping (UIImage?) -> Void) -> PHImageRequestID {
+        let options = PHImageRequestOptions()
+        options.isNetworkAccessAllowed = true
+        options.deliveryMode = .highQualityFormat
         options.resizeMode = .fast
         
         return imageManager.requestImage(
@@ -193,7 +268,7 @@ public class PhotoLibraryService: ObservableObject {
         }
     }
     
-    /// Asynchronously extracts comprehensive EXIF parameters from the asset's binary data.
+    /// Asynchronously extracts EXIF parameters.
     public func fetchExifMetadata(for asset: PhotoAsset, completion: @escaping ([String: String]) -> Void) {
         let options = PHImageRequestOptions()
         options.isNetworkAccessAllowed = true
@@ -208,18 +283,15 @@ public class PhotoLibraryService: ObservableObject {
                 return
             }
             
-            // Format size
             let bytes = Double(data.count)
             exif["File Size"] = bytes > 1024 * 1024 ? String(format: "%.2f MB", bytes / (1024 * 1024)) : String(format: "%.1f KB", bytes / 1024)
             exif["Dimensions"] = "\(asset.width) × \(asset.height)"
             
-            // Camera
             if let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any] {
                 if let make = tiff[kCGImagePropertyTIFFMake] as? String { exif["Manufacturer"] = make }
                 if let model = tiff[kCGImagePropertyTIFFModel] as? String { exif["Camera Model"] = model }
             }
             
-            // Exposure specs
             if let exifDict = properties[kCGImagePropertyExifDictionary] as? [CFString: Any] {
                 if let iso = exifDict[kCGImagePropertyExifISOSpeedRatings] as? [Int], let first = iso.first {
                     exif["ISO"] = "\(first)"
@@ -238,7 +310,6 @@ public class PhotoLibraryService: ObservableObject {
                 }
             }
             
-            // GPS coords
             if let gps = properties[kCGImagePropertyGPSDictionary] as? [CFString: Any] {
                 if let lat = gps[kCGImagePropertyGPSLatitude] as? Double, let latRef = gps[kCGImagePropertyGPSLatitudeRef] as? String {
                     exif["Latitude"] = String(format: "%.4f° %@", lat, latRef)

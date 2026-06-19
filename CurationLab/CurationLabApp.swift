@@ -33,7 +33,7 @@ struct CurationLabApp: App {
         WindowGroup {
             Group {
                 if libraryService.permissionStatus == .authorized || libraryService.permissionStatus == .limited {
-                    DashboardView(libraryService: libraryService)
+                    MainTabView(libraryService: libraryService)
                 } else {
                     OnboardingView(libraryService: libraryService)
                 }

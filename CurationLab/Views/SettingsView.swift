@@ -10,6 +10,15 @@ public struct SettingsView: View {
     
     @Environment(\.dismiss) var dismiss
     
+    private func getDefaultKey(for name: String) -> String {
+        guard let path = Bundle.main.path(forResource: "Keys", ofType: "plist"),
+              let dict = NSDictionary(contentsOfFile: path) as? [String: Any],
+              let key = dict[name] as? String else {
+            return ""
+        }
+        return key
+    }
+    
     public init(libraryService: PhotoLibraryService) {
         self.libraryService = libraryService
     }
@@ -18,7 +27,7 @@ public struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    SecureField("Gemini API Key", text: $geminiApiKey)
+                    SecureField(geminiApiKey.isEmpty && !getDefaultKey(for: "GeminiAPIKey").isEmpty ? "Gemini API Key (Default Key Active)" : "Gemini API Key", text: $geminiApiKey)
                         .textInputAutocapitalization(.none)
                         .autocorrectionDisabled(true)
                     
@@ -35,7 +44,7 @@ public struct SettingsView: View {
                 }
                 
                 Section {
-                    SecureField("Groq API Key", text: $groqApiKey)
+                    SecureField(groqApiKey.isEmpty && !getDefaultKey(for: "GroqAPIKey").isEmpty ? "Groq API Key (Default Key Active)" : "Groq API Key", text: $groqApiKey)
                         .textInputAutocapitalization(.none)
                         .autocorrectionDisabled(true)
                 } header: {

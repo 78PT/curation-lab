@@ -10,9 +10,12 @@
 		05131FEB98E41FD9089D09A8 /* LLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40611CA3F5EE4811F38C5CEA /* LLMService.swift */; };
 		2DC7A2C46F5148E8CD9F6501 /* EventDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 678CB0143D6430AAB36883F2 /* EventDetailView.swift */; };
 		31624BF49625742ED77F873E /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F391A98CCC992D424AC2A6A /* DashboardView.swift */; };
+		3825428EB7B39F786FC1D7FD /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C62397A2AA5B41C0CE9F089 /* MainTabView.swift */; };
 		5AB319B9BBCCD384E7CF92EE /* PhotoInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AC7B583E8FD056285AF4AC8 /* PhotoInspectorView.swift */; };
 		620F9905A56AF82954C5E2C1 /* VisionAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF87AD35198DB88F523435E /* VisionAnalysisService.swift */; };
 		8D25E0AFD56F708F42EBD873 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 09E7C5C86C9AEB55B59FFA1A /* Assets.xcassets */; };
+		92E9D6B148D803AE08C2832A /* LLMAnalysisPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529F18CD84A7B84D162E861A /* LLMAnalysisPageView.swift */; };
+		B08636E997182D8989FC4E1A /* AppleAnalysisPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FDADD8856205AAC64AE7D96 /* AppleAnalysisPageView.swift */; };
 		B905A50BE866EFBDBAECF939 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38AFD84141509CC565996286 /* SettingsView.swift */; };
 		BE98EC5FA8064E3323B2F788 /* PhotoLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A29C4DD9FC8B7A479CF3C24 /* PhotoLibraryService.swift */; };
 		CA68D9DA2F78B3F10F076B1B /* Keys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6194B9396C590CE5ABE14219 /* Keys.plist */; };
@@ -24,13 +27,16 @@
 
 /* Begin PBXFileReference section */
 		09E7C5C86C9AEB55B59FFA1A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0C62397A2AA5B41C0CE9F089 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		34D2D8D668F83C6D86E63BD5 /* CurationLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurationLabApp.swift; sourceTree = "<group>"; };
 		38AFD84141509CC565996286 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		3A29C4DD9FC8B7A479CF3C24 /* PhotoLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibraryService.swift; sourceTree = "<group>"; };
 		3F391A98CCC992D424AC2A6A /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		40611CA3F5EE4811F38C5CEA /* LLMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMService.swift; sourceTree = "<group>"; };
+		529F18CD84A7B84D162E861A /* LLMAnalysisPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMAnalysisPageView.swift; sourceTree = "<group>"; };
 		6194B9396C590CE5ABE14219 /* Keys.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Keys.plist; sourceTree = "<group>"; };
 		678CB0143D6430AAB36883F2 /* EventDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetailView.swift; sourceTree = "<group>"; };
+		6FDADD8856205AAC64AE7D96 /* AppleAnalysisPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleAnalysisPageView.swift; sourceTree = "<group>"; };
 		7FF87AD35198DB88F523435E /* VisionAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionAnalysisService.swift; sourceTree = "<group>"; };
 		8AC7B583E8FD056285AF4AC8 /* PhotoInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInspectorView.swift; sourceTree = "<group>"; };
 		9705706EE16AEDFED091482F /* EventCluster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCluster.swift; sourceTree = "<group>"; };
@@ -44,8 +50,11 @@
 		47D54750EF0692DB38E622B6 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				6FDADD8856205AAC64AE7D96 /* AppleAnalysisPageView.swift */,
 				3F391A98CCC992D424AC2A6A /* DashboardView.swift */,
 				678CB0143D6430AAB36883F2 /* EventDetailView.swift */,
+				529F18CD84A7B84D162E861A /* LLMAnalysisPageView.swift */,
+				0C62397A2AA5B41C0CE9F089 /* MainTabView.swift */,
 				B5251C001504016C12F388BB /* OnboardingView.swift */,
 				8AC7B583E8FD056285AF4AC8 /* PhotoInspectorView.swift */,
 				38AFD84141509CC565996286 /* SettingsView.swift */,
@@ -174,11 +183,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B08636E997182D8989FC4E1A /* AppleAnalysisPageView.swift in Sources */,
 				E7AFF9EDFE79CF56226C8B0E /* CurationLabApp.swift in Sources */,
 				31624BF49625742ED77F873E /* DashboardView.swift in Sources */,
 				F5E446920CF738F0F49A9353 /* EventCluster.swift in Sources */,
 				2DC7A2C46F5148E8CD9F6501 /* EventDetailView.swift in Sources */,
+				92E9D6B148D803AE08C2832A /* LLMAnalysisPageView.swift in Sources */,
 				05131FEB98E41FD9089D09A8 /* LLMService.swift in Sources */,
+				3825428EB7B39F786FC1D7FD /* MainTabView.swift in Sources */,
 				F9B8DA8DFEE2C34160FD39D6 /* OnboardingView.swift in Sources */,
 				F773F6041EA631B2D2D13BC2 /* PhotoAsset.swift in Sources */,
 				5AB319B9BBCCD384E7CF92EE /* PhotoInspectorView.swift in Sources */,

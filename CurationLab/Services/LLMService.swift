@@ -4,7 +4,7 @@ import Photos
 
 public enum ModelProvider: String, CaseIterable, Identifiable {
     case gemini = "Gemini 2.5 Flash"
-    case groq = "Groq Llama 3.2 Vision"
+    case groq = "Groq Llama 4 Scout"
     
     public var id: String { self.rawValue }
 }
@@ -195,7 +195,7 @@ public class LLMService {
         }
         
         let requestBody: [String: Any] = [
-            "model": "llama-3.2-11b-vision-preview",
+            "model": "meta-llama/llama-4-scout-17b-16e-instruct",
             "messages": [
                 [
                     "role": "user",

@@ -8,6 +8,7 @@ public struct PhotoInspectorView: View {
     @State private var asset: PhotoAsset
     @State private var fullImage: UIImage? = nil
     @State private var isAnalyzing: Bool = false
+    @State private var showCopySuccess = false
     
     public init(asset: PhotoAsset, libraryService: PhotoLibraryService) {
         self.originalAsset = asset
@@ -18,36 +19,57 @@ public struct PhotoInspectorView: View {
     public var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Photo Canvas
-                ZStack {
+                // Photo Canvas Card
+                ZStack(alignment: .bottomTrailing) {
                     if let img = fullImage {
                         Image(uiImage: img)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(maxHeight: 320)
                             .cornerRadius(16)
-                            .shadow(radius: 6)
+                            .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
                     } else {
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.gray.opacity(0.12))
+                            .fill(Color.gray.opacity(0.1))
                             .frame(height: 240)
-                            .overlay(
-                                ProgressView()
-                            )
+                            .overlay(ProgressView())
+                    }
+                    
+                    if isAnalyzing {
+                        ProgressView()
+                            .padding(10)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(10)
+                            .padding(10)
+                    } else if asset.isFullyAnalyzed {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundColor(.green)
+                            Text("Analyzed")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(8)
+                        .padding(10)
                     }
                 }
                 .padding(.horizontal)
                 
-                // Curation Scores Card
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Apple Vision Curation API")
+                // Aesthetics Quality Card
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Aesthetics & Curation")
                         .font(.headline)
-                        .padding(.horizontal)
+                        .foregroundColor(.primary)
                     
                     VStack(spacing: 12) {
                         HStack {
-                            Text("Aesthetic Score")
+                            Text("Overall Quality")
                                 .font(.subheadline)
+                                .foregroundColor(.secondary)
                             Spacer()
                             Text(String(format: "%.3f", asset.aestheticScore))
                                 .font(.system(.body, design: .monospaced))
@@ -55,7 +77,6 @@ public struct PhotoInspectorView: View {
                                 .foregroundColor(scoreColor(asset.aestheticScore))
                         }
                         
-                        // Score progress bar (-1 to 1 scaled to 0 to 1)
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
                                 Capsule()
@@ -70,44 +91,80 @@ public struct PhotoInspectorView: View {
                         .frame(height: 8)
                         
                         Divider()
-                            .padding(.vertical, 4)
                         
                         HStack {
-                            Text("Curation Type")
+                            Text("Classification")
                                 .font(.subheadline)
+                                .foregroundColor(.secondary)
                             Spacer()
-                            Text(asset.isUtility ? "Utility (Exclude)" : "Memorable (Include)")
+                            Text(asset.isUtility ? "Utility (Receipt/Screenshot)" : "Memorable (Photo/Scene)")
                                 .font(.subheadline)
-                                .fontWeight(.semibold)
+                                .fontWeight(.bold)
                                 .foregroundColor(asset.isUtility ? .orange : .green)
                         }
-                        
-                        Text("Apple's on-device aesthetics score evaluates blur, lighting, exposure, and composition (-1 to 1). 'Utility' identifies screenshots, barcodes, receipts, and documents to filter them out.")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .padding(.top, 4)
                     }
                     .padding()
-                    .background(Color(.secondarySystemBackground))
+                    .background(Color(.secondarySystemGroupedBackground))
                     .cornerRadius(14)
-                    .padding(.horizontal)
                 }
+                .padding(.horizontal)
                 
-                // Local Image Tags
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Auto-Generated Scene Tags")
+                // Vision Detections Card
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Objects & People Detection")
                         .font(.headline)
-                        .padding(.horizontal)
+                        .foregroundColor(.primary)
+                    
+                    HStack(spacing: 12) {
+                        // Faces Found Card
+                        VStack(spacing: 8) {
+                            Image(systemName: "face.smiling.fill")
+                                .font(.title)
+                                .foregroundColor(.orange)
+                            Text("\(asset.faceCount) Faces")
+                                .fontWeight(.bold)
+                            Text("Detected")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .cornerRadius(14)
+                        
+                        // Humans Found Card
+                        VStack(spacing: 8) {
+                            Image(systemName: "person.fill")
+                                .font(.title)
+                                .foregroundColor(.blue)
+                            Text("\(asset.humanCount) People")
+                                .fontWeight(.bold)
+                            Text("Detected")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .cornerRadius(14)
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Scene Tags Card
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Scene Classification Tags")
+                        .font(.headline)
+                        .foregroundColor(.primary)
                     
                     if asset.tags.isEmpty {
-                        Text("No tags detected")
+                        Text(isAnalyzing ? "Analyzing scene..." : "No tags detected")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(.secondarySystemBackground))
+                            .background(Color(.secondarySystemGroupedBackground))
                             .cornerRadius(14)
-                            .padding(.horizontal)
                     } else {
                         FlowLayout(spacing: 8) {
                             ForEach(asset.tags) { tag in
@@ -116,7 +173,7 @@ public struct PhotoInspectorView: View {
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                     Text("\(Int(round(tag.confidence * 100)))%")
-                                        .font(.caption)
+                                        .font(.caption2)
                                         .foregroundColor(.secondary)
                                 }
                                 .padding(.horizontal, 10)
@@ -126,21 +183,79 @@ public struct PhotoInspectorView: View {
                                 .cornerRadius(12)
                             }
                         }
-                        .padding(.horizontal)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .cornerRadius(14)
                     }
+                }
+                .padding(.horizontal)
+                
+                // Text OCR Card
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Extracted OCR Text")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        if !asset.recognizedText.isEmpty {
+                            Button(action: copyTextToPasteboard) {
+                                Label(showCopySuccess ? "Copied" : "Copy Text", systemImage: showCopySuccess ? "checkmark.circle.fill" : "doc.on.doc")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                    
+                    if asset.recognizedText.isEmpty {
+                        Text(isAnalyzing ? "Reading text..." : "No text detected in image")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(14)
+                    } else {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(asset.recognizedText, id: \.self) { line in
+                                Text(line)
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .cornerRadius(14)
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Map/Location Card
+                if let location = asset.location {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("GPS Location")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        MapSection(coordinate: location.coordinate)
+                            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                    }
+                    .padding(.horizontal)
                 }
                 
                 // EXIF Metadata Inspector
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Raw EXIF Metadata")
+                    Text("Camera & Exif Specs")
                         .font(.headline)
-                        .padding(.horizontal)
+                        .foregroundColor(.primary)
                     
                     VStack(spacing: 0) {
                         if asset.exifMetadata.isEmpty {
                             Text("Reading EXIF parameters...")
                                 .foregroundColor(.secondary)
                                 .padding()
+                                .frame(maxWidth: .infinity)
                         } else {
                             ForEach(asset.exifMetadata.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
                                 HStack {
@@ -161,15 +276,17 @@ public struct PhotoInspectorView: View {
                             }
                         }
                     }
-                    .background(Color(.secondarySystemBackground))
+                    .background(Color(.secondarySystemGroupedBackground))
                     .cornerRadius(14)
-                    .padding(.horizontal)
                 }
+                .padding(.horizontal)
+                .padding(.bottom, 30)
             }
             .padding(.vertical)
         }
         .navigationTitle("Photo Inspector")
         .navigationBarTitleDisplayMode(.inline)
+        .background(Color(.systemGroupedBackground))
         .onAppear {
             loadImage()
             loadMetadataAndVision()
@@ -183,15 +300,30 @@ public struct PhotoInspectorView: View {
     }
     
     private func loadMetadataAndVision() {
-        // 1. Fetch EXIF
+        // 1. Fetch EXIF metadata
         libraryService.fetchExifMetadata(for: originalAsset) { meta in
-            self.asset.exifMetadata = meta
-            
-            // 2. Perform local Vision calculations
-            self.isAnalyzing = true
-            VisionAnalysisService.shared.analyzeAsset(self.asset, libraryService: libraryService) { analyzed in
-                self.asset = analyzed
-                self.isAnalyzing = false
+            DispatchQueue.main.async {
+                self.asset.exifMetadata = meta
+                
+                // 2. Perform Apple Vision calculations (which caches internally)
+                self.isAnalyzing = true
+                VisionAnalysisService.shared.analyzeAsset(self.asset, libraryService: libraryService) { analyzed in
+                    self.asset = analyzed
+                    self.isAnalyzing = false
+                }
+            }
+        }
+    }
+    
+    private func copyTextToPasteboard() {
+        let fullText = asset.recognizedText.joined(separator: "\n")
+        UIPasteboard.general.string = fullText
+        withAnimation {
+            showCopySuccess = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            withAnimation {
+                showCopySuccess = false
             }
         }
     }
@@ -204,7 +336,33 @@ public struct PhotoInspectorView: View {
     }
 }
 
-/// A simple flow layout wrapper for Swift 16.0/17.0
+fileprivate struct MapSection: View {
+    let coordinate: CLLocationCoordinate2D
+    @State private var region: MKCoordinateRegion
+    
+    init(coordinate: CLLocationCoordinate2D) {
+        self.coordinate = coordinate
+        self._region = State(initialValue: MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        ))
+    }
+    
+    var body: some View {
+        Map(coordinateRegion: $region, annotationItems: [MapPinItem(coordinate: coordinate)]) { item in
+            MapMarker(coordinate: item.coordinate, tint: .red)
+        }
+        .frame(height: 180)
+        .cornerRadius(14)
+    }
+}
+
+fileprivate struct MapPinItem: Identifiable {
+    let id = UUID()
+    let coordinate: CLLocationCoordinate2D
+}
+
+/// A simple flow layout wrapper for Swift
 fileprivate struct FlowLayout: Layout {
     var spacing: CGFloat = 8
     

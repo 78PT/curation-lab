@@ -28,6 +28,12 @@ public struct PhotoAsset: Identifiable, Hashable {
     public var isAestheticAnalyzed: Bool = false
     public var exifMetadata: [String: String] = [:]
     
+    // Additional Apple Vision properties
+    public var faceCount: Int = 0
+    public var humanCount: Int = 0
+    public var recognizedText: [String] = []
+    public var isFullyAnalyzed: Bool = false
+    
     public var width: Int {
         phAsset.pixelWidth
     }

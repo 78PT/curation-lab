@@ -13,12 +13,21 @@ public struct EventDetailView: View {
     @State private var geminiSelectedAssets: [PhotoAsset] = []
     @State private var geminiError: String? = nil
     
+    private func getDefaultKey(for name: String) -> String {
+        guard let path = Bundle.main.path(forResource: "Keys", ofType: "plist"),
+              let dict = NSDictionary(contentsOfFile: path) as? [String: Any],
+              let key = dict[name] as? String else {
+            return ""
+        }
+        return key
+    }
+    
     private var hasApiKey: Bool {
         switch selectedProvider {
         case .gemini:
-            return !apiKey.isEmpty
+            return !apiKey.isEmpty || !getDefaultKey(for: "GeminiAPIKey").isEmpty
         case .groq:
-            return !groqApiKey.isEmpty
+            return !groqApiKey.isEmpty || !getDefaultKey(for: "GroqAPIKey").isEmpty
         }
     }
     
@@ -490,7 +499,9 @@ public struct EventDetailView: View {
     }
     
     private func runLLMLabRequest() {
-        let key = selectedProvider == .gemini ? apiKey : groqApiKey
+        let defaultKey = selectedProvider == .gemini ? getDefaultKey(for: "GeminiAPIKey") : getDefaultKey(for: "GroqAPIKey")
+        let enteredKey = selectedProvider == .gemini ? apiKey : groqApiKey
+        let key = enteredKey.isEmpty ? defaultKey : enteredKey
         guard !key.isEmpty else {
             self.llmError = "API Key missing. Enter it in Settings."
             return
