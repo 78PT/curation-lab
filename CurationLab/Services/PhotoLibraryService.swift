@@ -17,12 +17,23 @@ public class PhotoLibraryService: ObservableObject {
     // Internal cache of analyzed PhotoAssets to avoid re-running Vision/EXIF extraction
     private var analysisCache: [String: PhotoAsset] = [:]
     
+    // Persistent LLM Cache
+    private var persistentLLMRecords: [String: LLMAnalysisRecord] = [:]
+    
     // PHFetchResult storing reference to all device photos lazily
     private var allPHAssets: PHFetchResult<PHAsset>? = nil
     private let imageManager = PHCachingImageManager()
     
     public init() {
+        loadPersistentLLMRecords()
         checkPermission()
+    }
+    
+    private func loadPersistentLLMRecords() {
+        if let data = UserDefaults.standard.data(forKey: "llm_analysis_cache"),
+           let decoded = try? JSONDecoder().decode([String: LLMAnalysisRecord].self, from: data) {
+            self.persistentLLMRecords = decoded
+        }
     }
     
     public func checkPermission() {
@@ -99,6 +110,16 @@ public class PhotoLibraryService: ObservableObject {
                     asset.isClassified = cached.isClassified
                     asset.isAestheticAnalyzed = cached.isAestheticAnalyzed
                     asset.exifMetadata = cached.exifMetadata
+                    asset.llmTags = cached.llmTags
+                    asset.llmDescription = cached.llmDescription
+                    asset.isLlmAnalyzed = cached.isLlmAnalyzed
+                } else {
+                    // Check persistent cache
+                    if let record = self.persistentLLMRecords[phAsset.localIdentifier] {
+                        asset.llmTags = record.tags
+                        asset.llmDescription = record.description
+                        asset.isLlmAnalyzed = true
+                    }
                 }
                 newAssets.append(asset)
             }
@@ -117,8 +138,70 @@ public class PhotoLibraryService: ObservableObject {
     public func cacheAnalyzedAsset(_ asset: PhotoAsset) {
         DispatchQueue.main.async {
             self.analysisCache[asset.localIdentifier] = asset
+            if asset.isLlmAnalyzed {
+                let record = LLMAnalysisRecord(tags: asset.llmTags, description: asset.llmDescription)
+                self.persistentLLMRecords[asset.localIdentifier] = record
+                
+                // Save to UserDefaults
+                if let data = try? JSONEncoder().encode(self.persistentLLMRecords) {
+                    UserDefaults.standard.set(data, forKey: "llm_analysis_cache")
+                }
+            }
             if let index = self.loadedAssets.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) {
                 self.loadedAssets[index] = asset
+            }
+        }
+    }
+    
+    public func saveLLMAnalysis(for assetId: String, tags: [String], description: String) {
+        DispatchQueue.main.async {
+            let record = LLMAnalysisRecord(tags: tags, description: description)
+            self.persistentLLMRecords[assetId] = record
+            
+            // Save to UserDefaults
+            if let data = try? JSONEncoder().encode(self.persistentLLMRecords) {
+                UserDefaults.standard.set(data, forKey: "llm_analysis_cache")
+            }
+            
+            // Update in loadedAssets if present
+            if let index = self.loadedAssets.firstIndex(where: { $0.localIdentifier == assetId }) {
+                var asset = self.loadedAssets[index]
+                asset.llmTags = tags
+                asset.llmDescription = description
+                asset.isLlmAnalyzed = true
+                self.loadedAssets[index] = asset
+                self.analysisCache[assetId] = asset
+            } else if var cached = self.analysisCache[assetId] {
+                cached.llmTags = tags
+                cached.llmDescription = description
+                cached.isLlmAnalyzed = true
+                self.analysisCache[assetId] = cached
+            }
+        }
+    }
+    
+    public func clearLLMAnalysis(for assetId: String) {
+        DispatchQueue.main.async {
+            self.persistentLLMRecords.removeValue(forKey: assetId)
+            
+            // Save to UserDefaults
+            if let data = try? JSONEncoder().encode(self.persistentLLMRecords) {
+                UserDefaults.standard.set(data, forKey: "llm_analysis_cache")
+            }
+            
+            // Update in loadedAssets if present
+            if let index = self.loadedAssets.firstIndex(where: { $0.localIdentifier == assetId }) {
+                var asset = self.loadedAssets[index]
+                asset.llmTags = []
+                asset.llmDescription = ""
+                asset.isLlmAnalyzed = false
+                self.loadedAssets[index] = asset
+                self.analysisCache[assetId] = asset
+            } else if var cached = self.analysisCache[assetId] {
+                cached.llmTags = []
+                cached.llmDescription = ""
+                cached.isLlmAnalyzed = false
+                self.analysisCache[assetId] = cached
             }
         }
     }
@@ -321,5 +404,15 @@ public class PhotoLibraryService: ObservableObject {
             
             completion(exif)
         }
+    }
+}
+
+public struct LLMAnalysisRecord: Codable {
+    public let tags: [String]
+    public let description: String
+    
+    public init(tags: [String], description: String) {
+        self.tags = tags
+        self.description = description
     }
 }

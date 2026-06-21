@@ -34,6 +34,11 @@ public struct PhotoAsset: Identifiable, Hashable {
     public var recognizedText: [String] = []
     public var isFullyAnalyzed: Bool = false
     
+    // LLM Tagging details
+    public var llmTags: [String] = []
+    public var llmDescription: String = ""
+    public var isLlmAnalyzed: Bool = false
+    
     public var width: Int {
         phAsset.pixelWidth
     }
