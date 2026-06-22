@@ -10,6 +10,11 @@ public struct LLMAnalysisPageView: View {
     @AppStorage("llm_selected_provider") private var selectedProviderRaw: String = ModelProvider.gemini.rawValue
     @AppStorage("prompt_history") private var promptHistoryJSON: String = "[]"
     @AppStorage("saved_memories") private var savedMemoriesJSON: String = "[]"
+    @AppStorage("tagging_prompt") private var taggingPrompt: String = "Analyze this image in detail. Extract a list of key thematic tags representing objects, location, colors, and mood. Also write a short description (2-3 sentences) summarizing what is happening in the photo. Format your response strictly as a JSON object matching this structure: {\"tags\": [\"outdoor\", \"sunny\", \"portrait\", \"happy\"], \"description\": \"A close-up shot of a person smiling during a sunny outdoor trip.\"}"
+    @AppStorage("memory_use_visual_data") private var memoryUseVisualData: Bool = true
+    
+    @State private var isHistoryExpanded = false
+    @State private var isTaggingPromptExpanded = false
     
     // UI state
     @State private var selectedTab = 0 // 0 = Image Tagging, 1 = Memory Builder
@@ -160,6 +165,8 @@ public struct LLMAnalysisPageView: View {
                         // TAB 1: Memory Builder View
                         renderMemoryBuilderView()
                     }
+                    
+                    renderPromptHistoryCard()
                 }
             }
             .navigationTitle("LLM Labs")
@@ -181,6 +188,48 @@ public struct LLMAnalysisPageView: View {
     @ViewBuilder
     private func renderTaggingView() -> some View {
         VStack(spacing: 16) {
+            // Tagging Prompt Customizer
+            VStack(alignment: .leading, spacing: 8) {
+                Button(action: {
+                    withAnimation {
+                        isTaggingPromptExpanded.toggle()
+                    }
+                }) {
+                    HStack {
+                        Label("Customize Tagging Prompt", systemImage: "square.and.pencil")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Spacer()
+                        Image(systemName: isTaggingPromptExpanded ? "chevron.up" : "chevron.down")
+                    }
+                    .foregroundColor(.blue)
+                }
+                .padding(.horizontal)
+                .padding(.top, 10)
+                
+                if isTaggingPromptExpanded {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        TextEditor(text: $taggingPrompt)
+                            .font(.system(.caption, design: .monospaced))
+                            .frame(minHeight: 100)
+                            .padding(6)
+                            .background(Color(uiColor: .systemGroupedBackground))
+                            .cornerRadius(8)
+                            .padding(.horizontal)
+                        
+                        Button("Reset to Default") {
+                            taggingPrompt = "Analyze this image in detail. Extract a list of key thematic tags representing objects, location, colors, and mood. Also write a short description (2-3 sentences) summarizing what is happening in the photo. Format your response strictly as a JSON object matching this structure: {\"tags\": [\"outdoor\", \"sunny\", \"portrait\", \"happy\"], \"description\": \"A close-up shot of a person smiling during a sunny outdoor trip.\"}"
+                        }
+                        .font(.caption2)
+                        .padding(.trailing)
+                        .padding(.bottom, 10)
+                    }
+                }
+            }
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
+            .cornerRadius(14)
+            .padding(.horizontal)
+            
             // Large Preview Card
             VStack(spacing: 12) {
                 if let asset = activeAsset {
@@ -491,6 +540,22 @@ public struct LLMAnalysisPageView: View {
             // Scrapbook Builder Panel
             if !selectedAssetIds.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
+                    Text("Curation Configuration")
+                        .font(.headline)
+                        .padding(.horizontal)
+                        .padding(.top, 12)
+                    
+                    Toggle("Send Images Visual Data", isOn: $memoryUseVisualData)
+                        .padding(.horizontal)
+                    
+                    Text(memoryUseVisualData ? "Sends resized photo frames to the LLM. Displays output as a collage." : "Only sends tags and descriptions. Displays output as a slideshow.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                        .padding(.bottom, 4)
+                    
+                    Divider().padding(.horizontal)
+                    
                     Text("Scrapbook Narrative Style")
                         .font(.headline)
                         .padding(.horizontal)
@@ -598,16 +663,26 @@ public struct LLMAnalysisPageView: View {
                             .padding(.horizontal)
                             .padding(.top, 16)
                         
-                        // Curated collage of images chosen by the LLM
+                        // Curated collage or slideshow of images chosen by the LLM
                         let chosenAssets = libraryService.loadedAssets.filter { memory.selected_photo_ids.contains($0.localIdentifier) }
                         if !chosenAssets.isEmpty {
-                            MemoryCollageView(assets: chosenAssets, libraryService: libraryService)
-                                .padding(.horizontal)
+                            if memory.isSlideshow == true {
+                                SlideshowView(assets: chosenAssets, libraryService: libraryService)
+                                    .padding(.horizontal)
+                            } else {
+                                MemoryCollageView(assets: chosenAssets, libraryService: libraryService)
+                                    .padding(.horizontal)
+                            }
                         } else {
                             // Fallback if LLM ID mapping is fuzzy
                             let fallbackAssets = libraryService.loadedAssets.filter { selectedAssetIds.contains($0.localIdentifier) }
-                            MemoryCollageView(assets: Array(fallbackAssets.prefix(4)), libraryService: libraryService)
-                                .padding(.horizontal)
+                            if memory.isSlideshow == true {
+                                SlideshowView(assets: Array(fallbackAssets.prefix(8)), libraryService: libraryService)
+                                    .padding(.horizontal)
+                            } else {
+                                MemoryCollageView(assets: Array(fallbackAssets.prefix(8)), libraryService: libraryService)
+                                    .padding(.horizontal)
+                            }
                         }
                         
                         // Story narrative
@@ -793,15 +868,8 @@ public struct LLMAnalysisPageView: View {
         isExecuting = true
         errorText = nil
         
-        let prompt = """
-        Analyze this image in detail. Extract a list of key thematic tags representing objects, location, colors, and mood.
-        Also write a short description (2-3 sentences) summarizing what is happening in the photo.
-        Format your response strictly as a JSON object matching this structure:
-        {
-          "tags": ["outdoor", "sunny", "portrait", "happy"],
-          "description": "A close-up shot of a person smiling during a sunny outdoor trip."
-        }
-        """
+        let prompt = taggingPrompt
+        savePromptToHistory(prompt, type: "Tagging")
         
         LLMService.shared.runPrompt(
             provider: selectedProvider,
@@ -830,6 +898,8 @@ public struct LLMAnalysisPageView: View {
         batchTaggingTotal = assets.count
         batchTaggingIndex = 0
         
+        savePromptToHistory(taggingPrompt, type: "Tagging")
+        
         func tagNext(index: Int) {
             guard index < assets.count else {
                 DispatchQueue.main.async {
@@ -844,15 +914,7 @@ public struct LLMAnalysisPageView: View {
             }
             
             let asset = assets[index]
-            let prompt = """
-            Analyze this image in detail. Extract a list of key thematic tags representing objects, location, colors, and mood.
-            Also write a short description (2-3 sentences) summarizing what is happening in the photo.
-            Format your response strictly as a JSON object matching this structure:
-            {
-              "tags": ["outdoor", "sunny", "portrait"],
-              "description": "A close-up shot of a person smiling during a sunny outdoor trip."
-            }
-            """
+            let prompt = taggingPrompt
             
             LLMService.shared.runPrompt(
                 provider: selectedProvider,
@@ -871,7 +933,7 @@ public struct LLMAnalysisPageView: View {
         
         tagNext(index: 0)
     }
-    
+
     private func executeMemoryGeneration() {
         let defaultKey = selectedProvider == .gemini ? getDefaultKey(for: "GeminiAPIKey") : getDefaultKey(for: "GroqAPIKey")
         let enteredKey = selectedProvider == .gemini ? geminiApiKey : groqApiKey
@@ -882,6 +944,8 @@ public struct LLMAnalysisPageView: View {
         isExecuting = true
         curatedMemory = nil
         errorText = nil
+        
+        savePromptToHistory(customPrompt, type: "Memory")
         
         let selectedAssets = libraryService.loadedAssets.filter { selectedAssetIds.contains($0.localIdentifier) }
         
@@ -906,7 +970,7 @@ public struct LLMAnalysisPageView: View {
         \(photoContext)
         
         Your tasks are:
-        1. Select a subset (between 2 to 4 photos) that together tell the most cohesive, beautiful story. Filter out duplicates, bad quality, or redundant pictures.
+        1. Select a subset (between 2 to 8 photos) that together tell the most cohesive, beautiful story. Filter out duplicates, bad quality, or redundant pictures.
         2. Write a catchy title/headline for this memory collection.
         3. Write a beautifully crafted, warm, and nostalgic diary/journal entry story (under 150 words) based on the prompt style request: "\(customPrompt)"
         
@@ -923,10 +987,12 @@ public struct LLMAnalysisPageView: View {
             apiKey: key,
             prompt: prompt,
             assets: selectedAssets,
+            sendImages: memoryUseVisualData,
             libraryService: libraryService
         ) { response in
             isExecuting = false
-            if let decoded = self.parseMemoryJSON(response) {
+            if var decoded = self.parseMemoryJSON(response) {
+                decoded.isSlideshow = !memoryUseVisualData
                 curatedMemory = decoded
             } else {
                 errorText = "Failed to parse structured JSON scrapbook output from LLM.\n\nRaw Response:\n\(response)"
@@ -1016,9 +1082,130 @@ public struct LLMAnalysisPageView: View {
             savedMemoriesJSON = json
         }
     }
+    
+    private func getPromptHistory() -> [PromptHistoryItem] {
+        guard let data = promptHistoryJSON.data(using: .utf8) else { return [] }
+        return (try? JSONDecoder().decode([PromptHistoryItem].self, from: data)) ?? []
+    }
+    
+    private func savePromptToHistory(_ prompt: String, type: String) {
+        var list = getPromptHistory()
+        // Avoid adding exact duplicate prompts consecutively to keep history clean
+        if list.first?.prompt == prompt {
+            return
+        }
+        let newItem = PromptHistoryItem(
+            idString: UUID().uuidString,
+            prompt: prompt,
+            type: type,
+            date: Date()
+        )
+        list.insert(newItem, at: 0)
+        
+        // Keep last 50 prompts
+        if list.count > 50 {
+            list = Array(list.prefix(50))
+        }
+        
+        if let data = try? JSONEncoder().encode(list),
+           let json = String(data: data, encoding: .utf8) {
+            promptHistoryJSON = json
+        }
+    }
+    
+    @ViewBuilder
+    private func renderPromptHistoryCard() -> some View {
+        let history = getPromptHistory()
+        
+        VStack(alignment: .leading, spacing: 10) {
+            Button(action: {
+                withAnimation(.easeInOut) {
+                    isHistoryExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Label("Prompt History (\(history.count))", systemImage: "clock.arrow.circlepath")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: isHistoryExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, 12)
+            
+            if isHistoryExpanded {
+                if history.isEmpty {
+                    Text("No prompts in history yet.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding([.horizontal, .bottom])
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(history) { item in
+                            Button(action: {
+                                // Tap to re-populate active inputs
+                                if item.type == "Tagging" {
+                                    taggingPrompt = item.prompt
+                                    selectedTab = 0
+                                } else {
+                                    customPrompt = item.prompt
+                                    selectedTab = 1
+                                }
+                            }) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(item.type)
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(item.type == "Tagging" ? Color.blue.opacity(0.15) : Color.purple.opacity(0.15))
+                                            .foregroundColor(item.type == "Tagging" ? .blue : .purple)
+                                            .cornerRadius(4)
+                                        
+                                        Spacer()
+                                        
+                                        Text(item.date, style: .time)
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Text(item.prompt)
+                                        .font(.subheadline)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                        .foregroundColor(.primary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .padding(8)
+                                .background(Color(uiColor: .tertiarySystemGroupedBackground))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding([.horizontal, .bottom])
+                }
+            }
+        }
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .cornerRadius(14)
+        .padding(.horizontal)
+    }
 }
 
 // MARK: - Helper Codable Models
+
+struct PromptHistoryItem: Codable, Identifiable {
+    var id: String { idString }
+    let idString: String
+    let prompt: String
+    let type: String // "Tagging" or "Memory"
+    let date: Date
+}
 
 struct LLMTagResponse: Codable {
     let tags: [String]
@@ -1029,6 +1216,7 @@ struct CuratedMemory: Codable {
     let selected_photo_ids: [String]
     let headline: String
     let story: String
+    var isSlideshow: Bool? = false
 }
 
 struct SavedMemory: Codable, Identifiable {
@@ -1038,6 +1226,7 @@ struct SavedMemory: Codable, Identifiable {
     let story: String
     let photoIds: [String]
     let dateCreated: Date
+    var isSlideshow: Bool? = false
 }
 
 // MARK: - Layout Sub-components
@@ -1102,6 +1291,11 @@ struct MemoryCollageView: View {
     let assets: [PhotoAsset]
     @ObservedObject var libraryService: PhotoLibraryService
     
+    private let collageColumns = [
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8)
+    ]
+    
     var body: some View {
         Group {
             if assets.isEmpty {
@@ -1134,7 +1328,7 @@ struct MemoryCollageView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
-            } else { // 4 or more
+            } else if assets.count == 4 {
                 VStack(spacing: 8) {
                     HStack(spacing: 8) {
                         CollageImage(asset: assets[0], libraryService: libraryService)
@@ -1154,8 +1348,32 @@ struct MemoryCollageView: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else { // 5 to 8
+                LazyVGrid(columns: collageColumns, spacing: 8) {
+                    ForEach(assets.prefix(8)) { asset in
+                        CollageImage(asset: asset, libraryService: libraryService)
+                            .frame(height: 110)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
         }
+    }
+}
+
+struct SlideshowView: View {
+    let assets: [PhotoAsset]
+    let libraryService: PhotoLibraryService
+    
+    var body: some View {
+        TabView {
+            ForEach(assets) { asset in
+                CollageImage(asset: asset, libraryService: libraryService)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+        .frame(height: 250)
     }
 }
 
@@ -1202,11 +1420,16 @@ struct SavedMemoryDetailView: View {
                         .padding(.horizontal)
                         .padding(.top)
                     
-                    // Collage of chosen photos
+                    // Collage or slideshow of chosen photos
                     let chosenAssets = libraryService.loadedAssets.filter { memory.photoIds.contains($0.localIdentifier) }
                     if !chosenAssets.isEmpty {
-                        MemoryCollageView(assets: chosenAssets, libraryService: libraryService)
-                            .padding(.horizontal)
+                        if memory.isSlideshow == true {
+                            SlideshowView(assets: chosenAssets, libraryService: libraryService)
+                                .padding(.horizontal)
+                        } else {
+                            MemoryCollageView(assets: chosenAssets, libraryService: libraryService)
+                                .padding(.horizontal)
+                        }
                     }
                     
                     // Story Text

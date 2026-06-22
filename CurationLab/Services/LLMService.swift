@@ -27,6 +27,7 @@ public class LLMService {
         apiKey: String,
         prompt: String,
         assets: [PhotoAsset],
+        sendImages: Bool = true,
         libraryService: PhotoLibraryService,
         completion: @escaping (String) -> Void
     ) {
@@ -56,6 +57,16 @@ public class LLMService {
         let fullPrompt = prompt + metadataContext
         
         // 2. Fetch resized base64 images
+        if !sendImages {
+            switch provider {
+            case .gemini:
+                self.sendToGemini(apiKey: apiKey, prompt: fullPrompt, images: [], completion: completion)
+            case .groq:
+                self.sendToGroq(apiKey: apiKey, prompt: fullPrompt, images: [], completion: completion)
+            }
+            return
+        }
+        
         let group = DispatchGroup()
         var base64Images: [String] = []
         
