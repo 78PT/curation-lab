@@ -81,6 +81,9 @@ public struct AppleAnalysisPageView: View {
             .navigationTitle("Apple Analysis")
             .background(Color(.systemGroupedBackground))
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    albumPickerMenu
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showSettings = true
@@ -93,6 +96,55 @@ public struct AppleAnalysisPageView: View {
             .sheet(isPresented: $showSettings) {
                 SettingsView(libraryService: libraryService)
             }
+        }
+    }
+    
+    @ViewBuilder
+    private var albumPickerMenu: some View {
+        Menu {
+            Button(action: {
+                libraryService.selectedAlbumId = nil
+            }) {
+                HStack {
+                    Text("All Photos")
+                    if libraryService.selectedAlbumId == nil {
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+            
+            if !libraryService.albums.isEmpty {
+                Divider()
+                
+                ForEach(libraryService.albums) { album in
+                    Button(action: {
+                        libraryService.selectedAlbumId = album.localIdentifier
+                    }) {
+                        HStack {
+                            Label(album.title, systemImage: album.isShared ? "person.2.fill" : "rectangle.stack.fill")
+                            if libraryService.selectedAlbumId == album.localIdentifier {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                let activeTitle = libraryService.albums.first(where: { $0.localIdentifier == libraryService.selectedAlbumId })?.title ?? "All Photos"
+                Image(systemName: libraryService.selectedAlbumId == nil ? "photo.on.rectangle.angled" : "rectangle.stack.fill")
+                    .imageScale(.small)
+                Text(activeTitle)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Image(systemName: "chevron.down")
+                    .font(.caption2)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.blue.opacity(0.1))
+            .foregroundColor(.blue)
+            .cornerRadius(8)
         }
     }
 }

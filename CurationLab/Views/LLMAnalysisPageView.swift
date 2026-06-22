@@ -174,6 +174,11 @@ public struct LLMAnalysisPageView: View {
             .sheet(item: $selectedSavedMemory) { memory in
                 SavedMemoryDetailView(memory: memory, libraryService: libraryService)
             }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    albumPickerMenu
+                }
+            }
             .onAppear {
                 // Set initial active asset if none is set
                 if activeAssetId == nil, let first = libraryService.loadedAssets.first {
@@ -1194,6 +1199,55 @@ public struct LLMAnalysisPageView: View {
         .background(Color(uiColor: .secondarySystemGroupedBackground))
         .cornerRadius(14)
         .padding(.horizontal)
+    }
+    
+    @ViewBuilder
+    private var albumPickerMenu: some View {
+        Menu {
+            Button(action: {
+                libraryService.selectedAlbumId = nil
+            }) {
+                HStack {
+                    Text("All Photos")
+                    if libraryService.selectedAlbumId == nil {
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+            
+            if !libraryService.albums.isEmpty {
+                Divider()
+                
+                ForEach(libraryService.albums) { album in
+                    Button(action: {
+                        libraryService.selectedAlbumId = album.localIdentifier
+                    }) {
+                        HStack {
+                            Label(album.title, systemImage: album.isShared ? "person.2.fill" : "rectangle.stack.fill")
+                            if libraryService.selectedAlbumId == album.localIdentifier {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                let activeTitle = libraryService.albums.first(where: { $0.localIdentifier == libraryService.selectedAlbumId })?.title ?? "All Photos"
+                Image(systemName: libraryService.selectedAlbumId == nil ? "photo.on.rectangle.angled" : "rectangle.stack.fill")
+                    .imageScale(.small)
+                Text(activeTitle)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Image(systemName: "chevron.down")
+                    .font(.caption2)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.blue.opacity(0.1))
+            .foregroundColor(.blue)
+            .cornerRadius(8)
+        }
     }
 }
 

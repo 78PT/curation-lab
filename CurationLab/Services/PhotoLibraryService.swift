@@ -10,6 +10,14 @@ public class PhotoLibraryService: ObservableObject {
     @Published public var eventClusters: [EventCluster] = []
     @Published public var isLoading: Bool = false
     
+    @Published public var albums: [PhotoAlbum] = []
+    @Published public var selectedAlbumId: String? = nil {
+        didSet {
+            // Re-initialize fetch result when the user switches albums
+            initializeFetchResult()
+        }
+    }
+    
     // Clustering configurations (retained for backward compatibility)
     @Published public var timeGapHours: Double = 4.0
     @Published public var distanceGapMeters: Double = 1000.0
@@ -42,6 +50,7 @@ public class PhotoLibraryService: ObservableObject {
             self.permissionStatus = status
             if status == .authorized || status == .limited {
                 self.initializeFetchResult()
+                self.fetchAlbums()
             }
         }
     }
@@ -52,7 +61,50 @@ public class PhotoLibraryService: ObservableObject {
                 self.permissionStatus = status
                 if status == .authorized || status == .limited {
                     self.initializeFetchResult()
+                    self.fetchAlbums()
                 }
+            }
+        }
+    }
+    
+    public func fetchAlbums() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            var loadedAlbums: [PhotoAlbum] = []
+            
+            // 1. Fetch iCloud Shared Albums
+            let sharedResult = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumCloudShared, options: nil)
+            sharedResult.enumerateObjects { collection, _, _ in
+                let fetchOptions = PHFetchOptions()
+                fetchOptions.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
+                let assetCount = PHAsset.fetchAssets(in: collection, options: fetchOptions).count
+                if assetCount > 0 {
+                    loadedAlbums.append(PhotoAlbum(
+                        localIdentifier: collection.localIdentifier,
+                        title: collection.localizedTitle ?? "Shared Album",
+                        count: assetCount,
+                        isShared: true
+                    ))
+                }
+            }
+            
+            // 2. Fetch Regular User Albums
+            let regularResult = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumRegular, options: nil)
+            regularResult.enumerateObjects { collection, _, _ in
+                let fetchOptions = PHFetchOptions()
+                fetchOptions.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
+                let assetCount = PHAsset.fetchAssets(in: collection, options: fetchOptions).count
+                if assetCount > 0 {
+                    loadedAlbums.append(PhotoAlbum(
+                        localIdentifier: collection.localIdentifier,
+                        title: collection.localizedTitle ?? "Album",
+                        count: assetCount,
+                        isShared: false
+                    ))
+                }
+            }
+            
+            DispatchQueue.main.async {
+                self.albums = loadedAlbums
             }
         }
     }
@@ -68,7 +120,13 @@ public class PhotoLibraryService: ObservableObject {
             fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
             fetchOptions.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
             
-            let fetchResult = PHAsset.fetchAssets(with: fetchOptions)
+            let fetchResult: PHFetchResult<PHAsset>
+            if let albumId = self.selectedAlbumId,
+               let collection = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [albumId], options: nil).firstObject {
+                fetchResult = PHAsset.fetchAssets(in: collection, options: fetchOptions)
+            } else {
+                fetchResult = PHAsset.fetchAssets(with: fetchOptions)
+            }
             
             DispatchQueue.main.async {
                 self.allPHAssets = fetchResult
@@ -414,5 +472,20 @@ public struct LLMAnalysisRecord: Codable {
     public init(tags: [String], description: String) {
         self.tags = tags
         self.description = description
+    }
+}
+
+public struct PhotoAlbum: Identifiable, Hashable {
+    public var id: String { localIdentifier }
+    public let localIdentifier: String
+    public let title: String
+    public let count: Int
+    public let isShared: Bool
+    
+    public init(localIdentifier: String, title: String, count: Int, isShared: Bool) {
+        self.localIdentifier = localIdentifier
+        self.title = title
+        self.count = count
+        self.isShared = isShared
     }
 }
