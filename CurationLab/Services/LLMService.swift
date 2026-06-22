@@ -65,16 +65,33 @@ public class LLMService {
             return ad < bd
         }
         
+        let queue = DispatchQueue(label: "com.curationlab.imageprocessing")
+        var completedAssetIds = Set<String>()
+        
         for asset in sortedAssets {
             group.enter()
-            // We fetch a 400x400 size to keep payloads small, avoiding rate limits/timeouts on free tiers
-            libraryService.fetchThumbnail(for: asset, size: CGSize(width: 400, height: 400)) { image in
-                defer { group.leave() }
+            let assetId = asset.localIdentifier
+            // Use fetchSingleThumbnail (highQualityFormat delivery) to ensure exactly one callback per request
+            libraryService.fetchSingleThumbnail(for: asset, size: CGSize(width: 400, height: 400)) { image in
                 guard let image = image,
                       let jpegData = image.jpegData(compressionQuality: 0.5) else {
+                    queue.async {
+                        if !completedAssetIds.contains(assetId) {
+                            completedAssetIds.insert(assetId)
+                            group.leave()
+                        }
+                    }
                     return
                 }
-                base64Images.append(jpegData.base64EncodedString())
+                
+                let base64 = jpegData.base64EncodedString()
+                queue.async {
+                    if !completedAssetIds.contains(assetId) {
+                        completedAssetIds.insert(assetId)
+                        base64Images.append(base64)
+                        group.leave()
+                    }
+                }
             }
         }
         
