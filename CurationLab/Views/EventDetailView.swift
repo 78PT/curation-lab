@@ -49,11 +49,14 @@ public struct EventDetailView: View {
     
     // LLM Lab Sandbox States
     @State private var selectedProvider: ModelProvider = .gemini
-    @State private var customPrompt = "Analyze these photos and summarize the overall event. Pick the best 2-3 photos to represent this day and explain your choices."
+    @State private var customPrompt = "Create a warm, nostalgic diary entry capturing the feeling of these highlights."
     @State private var selectedAssetIds: Set<String> = []
     @State private var llmResponse: String? = nil
     @State private var isExecutingLLM = false
     @State private var llmError: String? = nil
+    @State private var curatedMemory: CuratedMemory? = nil
+    @State private var useVisualDataToggle = true
+    @AppStorage("saved_memories") private var savedMemoriesJSON: String = "[]"
     
     private let columns = [
         GridItem(.adaptive(minimum: 100, maximum: 120), spacing: 12)
@@ -292,19 +295,19 @@ public struct EventDetailView: View {
         VStack(alignment: .leading, spacing: 20) {
             // Header Description
             VStack(alignment: .leading, spacing: 6) {
-                Text("LLM Lab Sandbox")
+                Text("Scrapbook Curation Playground")
                     .font(.title2)
                     .fontWeight(.bold)
                 
-                Text("Choose your model provider, select exactly which photos to send, write a custom prompt, and inspect the results. Free rate limits apply.")
+                Text("Test different prompts and immediately see how the LLM curates your day's photos into a beautiful scrapbook entry.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
             .padding([.horizontal, .top])
             
-            // 1. Model Selection
-            VStack(alignment: .leading, spacing: 8) {
-                Text("1. Select Model Provider")
+            // 1. Model Selection & Visual Data Toggle
+            VStack(alignment: .leading, spacing: 10) {
+                Text("1. Model Configuration")
                     .font(.headline)
                     .padding(.horizontal)
                 
@@ -315,6 +318,15 @@ public struct EventDetailView: View {
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
+                
+                Toggle("Send Images Visual Data", isOn: $useVisualDataToggle)
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+                
+                Text(useVisualDataToggle ? "Sends compressed photo frames to the LLM. Displays output as a collage." : "Only sends tags and descriptions (metadata-only). Displays output as a slideshow.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
                 
                 // Key Validation Warn
                 if !hasApiKey {
@@ -332,7 +344,7 @@ public struct EventDetailView: View {
             // 2. Photo Multi-Selector
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("2. Select Photos (\(selectedAssetIds.count) / \(cluster.assets.count))")
+                    Text("2. Pool of Photos (\(selectedAssetIds.count) / \(cluster.assets.count))")
                         .font(.headline)
                     
                     Spacer()
@@ -376,21 +388,21 @@ public struct EventDetailView: View {
             // 3. Prompt Constructor
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("3. Prompt Instruction")
+                    Text("3. Curation Style Prompt")
                         .font(.headline)
                     Spacer()
                     
                     // Preset Prompts Dropdown
                     Menu {
                         Section("Preset Templates") {
-                            Button("Recommend Representative Pics") {
-                                customPrompt = "Pick the top 2 photos that represent this day. Explain your reasoning."
+                            Button("Nostalgic Travel Diary") {
+                                customPrompt = "Create a warm, nostalgic diary entry capturing the feeling of these highlights."
                             }
-                            Button("Evaluate Aesthetics & Blur") {
-                                customPrompt = "Look closely at these photos. Which one has the best composition, exposure, and sharpness? Detail any defects like blur or bad lighting."
+                            Button("Action & Energy Story") {
+                                customPrompt = "Create an active, energetic narrative style focused on the motion and details of these photos."
                             }
-                            Button("Write Diary Story") {
-                                customPrompt = "Write a creative, detailed travel journal entry describing what happened at this event based on the photos and camera metadata."
+                            Button("Poetic Scrapbook Narrative") {
+                                customPrompt = "Create a short, poetic journal entry with a cozy atmosphere."
                             }
                         }
                         
@@ -417,7 +429,7 @@ public struct EventDetailView: View {
                 
                 TextEditor(text: $customPrompt)
                     .font(.subheadline)
-                    .frame(height: 100)
+                    .frame(height: 80)
                     .padding(8)
                     .background(Color(.secondarySystemBackground))
                     .cornerRadius(8)
@@ -440,8 +452,8 @@ public struct EventDetailView: View {
                         runLLMLabRequest()
                     }) {
                         HStack {
-                            Image(systemName: "play.fill")
-                            Text("Run LLM Request")
+                            Image(systemName: "wand.and.stars")
+                            Text("Generate Curated Memory")
                                 .fontWeight(.semibold)
                         }
                         .foregroundColor(.white)
@@ -471,18 +483,82 @@ public struct EventDetailView: View {
                 .padding(.horizontal)
             }
             
+            if let memory = curatedMemory {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Preview: Curated Scrapbook Memory")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                    
+                    VStack(spacing: 16) {
+                        // Title
+                        Text(memory.headline)
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                            .padding(.top, 16)
+                        
+                        // Collage or Slideshow
+                        let chosenAssets = resolveSelectedAssets(selectedPhotoIds: memory.selected_photo_ids, allAssets: cluster.assets)
+                        if !chosenAssets.isEmpty {
+                            if memory.isSlideshow == true {
+                                SlideshowView(assets: chosenAssets, libraryService: libraryService)
+                                    .padding(.horizontal)
+                            } else {
+                                MemoryCollageView(assets: chosenAssets, libraryService: libraryService)
+                                    .padding(.horizontal)
+                            }
+                        }
+                        
+                        // Story narrative
+                        Text(memory.story)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .lineSpacing(5)
+                            .padding()
+                            .background(Color(uiColor: .systemGroupedBackground))
+                            .cornerRadius(10)
+                            .padding(.horizontal)
+                        
+                        // Save memory button
+                        Button(action: {
+                            saveMemoryToScrapbook(memory)
+                        }) {
+                            Label("Save to Scrapbook History", systemImage: "bookmark.fill")
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 10)
+                                .background(Color.green)
+                                .cornerRadius(8)
+                        }
+                        .padding(.bottom, 16)
+                    }
+                    .background(Color(uiColor: .secondarySystemGroupedBackground))
+                    .cornerRadius(16)
+                    .shadow(radius: 4)
+                    .padding(.horizontal)
+                }
+            }
+            
             if let response = llmResponse {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Model Output Response")
-                        .font(.headline)
+                    Text("Raw JSON Response")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     
-                    Text(response)
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(12)
+                    ScrollView {
+                        Text(response)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .padding(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(8)
+                    }
+                    .frame(maxHeight: 120)
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 30)
@@ -526,14 +602,49 @@ public struct EventDetailView: View {
         self.isExecutingLLM = true
         self.llmResponse = nil
         self.llmError = nil
+        self.curatedMemory = nil
         
         let selectedAssets = cluster.assets.filter { selectedAssetIds.contains($0.localIdentifier) }
+        
+        // Build metadata content of selected photos
+        var photoContext = ""
+        for (idx, asset) in selectedAssets.enumerated() {
+            photoContext += "Photo #\(idx + 1) (ID: \(asset.localIdentifier))\n"
+            photoContext += "  Dimensions: \(asset.width)x\(asset.height)\n"
+            photoContext += "  Date: \(asset.creationDate?.description ?? "unknown")\n"
+            if asset.isLlmAnalyzed {
+                photoContext += "  LLM Description: \(asset.llmDescription)\n"
+                photoContext += "  LLM Tags: [\(asset.llmTags.joined(separator: ", "))]\n"
+            } else {
+                photoContext += "  On-Device Tags: [\(asset.tags.map { $0.name }.joined(separator: ", "))]\n"
+            }
+            photoContext += "\n"
+        }
+        
+        let finalPrompt = """
+        You are a memory curation assistant. Below is a list of photos from this day, each with its identifier, date, and tags:
+        
+        \(photoContext)
+        
+        Your tasks are:
+        1. Select a subset (between 2 to 8 photos) that together tell the most cohesive, beautiful story. Filter out duplicates, bad quality, or redundant pictures.
+        2. Write a catchy title/headline for this memory collection.
+        3. Write a beautifully crafted, warm, and nostalgic diary/journal entry story (under 150 words) based on the user's custom style prompt: "\(customPrompt)"
+        
+        Format your response strictly as a JSON object matching this structure:
+        {
+          "selected_photo_ids": ["chosen_id_1", "chosen_id_2"],
+          "headline": "A Beautiful title for the Memory",
+          "story": "The story narrative text..."
+        }
+        """
         
         LLMService.shared.runPrompt(
             provider: selectedProvider,
             apiKey: key,
-            prompt: customPrompt,
+            prompt: finalPrompt,
             assets: selectedAssets,
+            sendImages: useVisualDataToggle,
             libraryService: libraryService
         ) { response in
             self.isExecutingLLM = false
@@ -543,7 +654,87 @@ public struct EventDetailView: View {
             } else {
                 self.llmResponse = response
                 self.savePromptToHistory(self.customPrompt)
+                
+                if var decoded = self.parseMemoryJSON(response) {
+                    decoded.isSlideshow = !useVisualDataToggle
+                    self.curatedMemory = decoded
+                } else {
+                    self.llmError = "Failed to parse structured JSON scrapbook output from LLM.\n\nRaw Response:\n\(response)"
+                }
             }
+        }
+    }
+    
+    private func parseMemoryJSON(_ text: String) -> CuratedMemory? {
+        var cleanText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanText.hasPrefix("```json") {
+            cleanText = cleanText.replacingOccurrences(of: "```json", with: "")
+            if cleanText.hasSuffix("```") {
+                cleanText = String(cleanText.dropLast(3))
+            }
+        } else if cleanText.hasPrefix("```") {
+            cleanText = cleanText.replacingOccurrences(of: "```", with: "")
+            if cleanText.hasSuffix("```") {
+                cleanText = String(cleanText.dropLast(3))
+            }
+        }
+        cleanText = cleanText.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard let data = cleanText.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(CuratedMemory.self, from: data)
+    }
+    
+    private func resolveSelectedAssets(selectedPhotoIds: [String], allAssets: [PhotoAsset]) -> [PhotoAsset] {
+        var resolved: [PhotoAsset] = []
+        for ref in selectedPhotoIds {
+            let cleanRef = ref.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // 1. Direct localIdentifier match
+            if let match = allAssets.first(where: { $0.localIdentifier == cleanRef }) {
+                resolved.append(match)
+                continue
+            }
+            
+            // 2. Match with "Photo #X" or pure index digits
+            let digits = cleanRef.filter { $0.isNumber }
+            if let idx = Int(digits), idx > 0, idx <= allAssets.count {
+                resolved.append(allAssets[idx - 1])
+                continue
+            }
+        }
+        
+        if resolved.isEmpty {
+            return Array(allAssets.prefix(min(3, allAssets.count)))
+        }
+        return resolved
+    }
+    
+    private func getSavedMemories() -> [SavedMemory] {
+        guard let data = savedMemoriesJSON.data(using: .utf8) else { return [] }
+        return (try? JSONDecoder().decode([SavedMemory].self, from: data)) ?? []
+    }
+    
+    private func saveMemoryToScrapbook(_ memory: CuratedMemory) {
+        var list = getSavedMemories()
+        
+        if list.contains(where: { $0.headline == memory.headline }) {
+            return
+        }
+        
+        let saved = SavedMemory(
+            idString: UUID().uuidString,
+            headline: memory.headline,
+            story: memory.story,
+            photoIds: memory.selected_photo_ids,
+            dateCreated: Date(),
+            isSlideshow: memory.isSlideshow
+        )
+        list.insert(saved, at: 0)
+        
+        if let data = try? JSONEncoder().encode(list),
+           let json = String(data: data, encoding: .utf8) {
+            savedMemoriesJSON = json
+            curatedMemory = nil
         }
     }
     
