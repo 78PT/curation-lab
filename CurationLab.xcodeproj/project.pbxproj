@@ -19,11 +19,22 @@
 		B905A50BE866EFBDBAECF939 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38AFD84141509CC565996286 /* SettingsView.swift */; };
 		BE98EC5FA8064E3323B2F788 /* PhotoLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A29C4DD9FC8B7A479CF3C24 /* PhotoLibraryService.swift */; };
 		CA68D9DA2F78B3F10F076B1B /* Keys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6194B9396C590CE5ABE14219 /* Keys.plist */; };
+		E69AC9BA3D8D1AE77EB20E20 /* CurationLabTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D779E7BC955FB466564AACEA /* CurationLabTests.swift */; };
 		E7AFF9EDFE79CF56226C8B0E /* CurationLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D2D8D668F83C6D86E63BD5 /* CurationLabApp.swift */; };
 		F5E446920CF738F0F49A9353 /* EventCluster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9705706EE16AEDFED091482F /* EventCluster.swift */; };
 		F773F6041EA631B2D2D13BC2 /* PhotoAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14ABE4F0197DEC91EAB90C9 /* PhotoAsset.swift */; };
 		F9B8DA8DFEE2C34160FD39D6 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5251C001504016C12F388BB /* OnboardingView.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D01D8F32B7DCE6C00F75D9A5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 342C1E7EA0B1490229AEA01E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3F4283EEBD13AC75E870E32E;
+			remoteInfo = CurationLab;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		09E7C5C86C9AEB55B59FFA1A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -36,6 +47,7 @@
 		529F18CD84A7B84D162E861A /* LLMAnalysisPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMAnalysisPageView.swift; sourceTree = "<group>"; };
 		6194B9396C590CE5ABE14219 /* Keys.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Keys.plist; sourceTree = "<group>"; };
 		678CB0143D6430AAB36883F2 /* EventDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetailView.swift; sourceTree = "<group>"; };
+		6E19EAB1D05DDD6C5039E93D /* CurationLabTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CurationLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FDADD8856205AAC64AE7D96 /* AppleAnalysisPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleAnalysisPageView.swift; sourceTree = "<group>"; };
 		7FF87AD35198DB88F523435E /* VisionAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionAnalysisService.swift; sourceTree = "<group>"; };
 		8AC7B583E8FD056285AF4AC8 /* PhotoInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInspectorView.swift; sourceTree = "<group>"; };
@@ -43,10 +55,19 @@
 		A14ABE4F0197DEC91EAB90C9 /* PhotoAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAsset.swift; sourceTree = "<group>"; };
 		B5251C001504016C12F388BB /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		D5A808ED2E9B7FFDC1DA9A5A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D779E7BC955FB466564AACEA /* CurationLabTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurationLabTests.swift; sourceTree = "<group>"; };
 		D8163D7C314BBD5768D2D3A2 /* CurationLab.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CurationLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		1142A13C9F1036BACB04A9A5 /* CurationLabTests */ = {
+			isa = PBXGroup;
+			children = (
+				D779E7BC955FB466564AACEA /* CurationLabTests.swift */,
+			);
+			path = CurationLabTests;
+			sourceTree = "<group>";
+		};
 		47D54750EF0692DB38E622B6 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -89,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				BCEA6CFABC246ED542DCC449 /* CurationLab */,
+				1142A13C9F1036BACB04A9A5 /* CurationLabTests */,
 				E5E6CC3618D2C3AA5C43E587 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -97,6 +119,7 @@
 			isa = PBXGroup;
 			children = (
 				D8163D7C314BBD5768D2D3A2 /* CurationLab.app */,
+				6E19EAB1D05DDD6C5039E93D /* CurationLabTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -132,6 +155,24 @@
 			productReference = D8163D7C314BBD5768D2D3A2 /* CurationLab.app */;
 			productType = "com.apple.product-type.application";
 		};
+		78F127D63C5D18CE650BA109 /* CurationLabTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C2DFB0D7ED9B60F9BE0D1559 /* Build configuration list for PBXNativeTarget "CurationLabTests" */;
+			buildPhases = (
+				C874D6A6AF26B5E5AE7EA181 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E0A0BF4490C9ACBE0200E9C7 /* PBXTargetDependency */,
+			);
+			name = CurationLabTests;
+			packageProductDependencies = (
+			);
+			productName = CurationLabTests;
+			productReference = 6E19EAB1D05DDD6C5039E93D /* CurationLabTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -142,6 +183,10 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					3F4283EEBD13AC75E870E32E = {
+						DevelopmentTeam = A7V5TM4Q6S;
+						ProvisioningStyle = Automatic;
+					};
+					78F127D63C5D18CE650BA109 = {
 						DevelopmentTeam = A7V5TM4Q6S;
 						ProvisioningStyle = Automatic;
 					};
@@ -162,6 +207,7 @@
 			projectRoot = "";
 			targets = (
 				3F4283EEBD13AC75E870E32E /* CurationLab */,
+				78F127D63C5D18CE650BA109 /* CurationLabTests */,
 			);
 		};
 /* End PBXProject section */
@@ -200,9 +246,65 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C874D6A6AF26B5E5AE7EA181 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E69AC9BA3D8D1AE77EB20E20 /* CurationLabTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		E0A0BF4490C9ACBE0200E9C7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3F4283EEBD13AC75E870E32E /* CurationLab */;
+			targetProxy = D01D8F32B7DCE6C00F75D9A5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		28ABD564412E117804D41304 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = A7V5TM4Q6S;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.pranavtiwari.CurationLabTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CurationLab.app/CurationLab";
+			};
+			name = Release;
+		};
+		29A5793BBA99FFFEC2C56C39 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = A7V5TM4Q6S;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.pranavtiwari.CurationLabTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CurationLab.app/CurationLab";
+			};
+			name = Debug;
+		};
 		2C8DAF442DD7A5611AF86EE2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -366,6 +468,15 @@
 			buildConfigurations = (
 				C394F97C77AC3C20D7C47E9B /* Debug */,
 				2C8DAF442DD7A5611AF86EE2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C2DFB0D7ED9B60F9BE0D1559 /* Build configuration list for PBXNativeTarget "CurationLabTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				29A5793BBA99FFFEC2C56C39 /* Debug */,
+				28ABD564412E117804D41304 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

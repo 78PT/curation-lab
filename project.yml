@@ -12,3 +12,16 @@ targets:
       PRODUCT_BUNDLE_IDENTIFIER: com.pranavtiwari.CurationLab
       DEVELOPMENT_TEAM: "A7V5TM4Q6S"
       CODE_SIGN_STYLE: Automatic
+
+  CurationLabTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources: [CurationLabTests]
+    dependencies:
+      - target: CurationLab
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.pranavtiwari.CurationLabTests
+      DEVELOPMENT_TEAM: "A7V5TM4Q6S"
+      CODE_SIGN_STYLE: Automatic
+      GENERATE_INFOPLIST_FILE: YES
