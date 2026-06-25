@@ -106,12 +106,19 @@ public struct SettingsView: View {
                     .foregroundColor(.blue)
                 }
             }
+            .scrollDismissesKeyboard(.immediately)
             .navigationTitle("CurationLab Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") {
                         dismiss()
+                    }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     }
                 }
             }

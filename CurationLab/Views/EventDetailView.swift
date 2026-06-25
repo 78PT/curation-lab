@@ -84,15 +84,33 @@ public struct EventDetailView: View {
             
             // Tab Content
             ScrollView {
-                switch activeTab {
-                case 0:
-                    allPhotosGrid
-                case 1:
-                    appleCurationView
-                case 2:
-                    geminiCurationView
-                default:
-                    llmLabSandboxView
+                VStack(spacing: 0) {
+                    switch activeTab {
+                    case 0:
+                        allPhotosGrid
+                    case 1:
+                        appleCurationView
+                    case 2:
+                        geminiCurationView
+                    default:
+                        llmLabSandboxView
+                    }
+                }
+                .background(
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        }
+                )
+            }
+            .scrollDismissesKeyboard(.immediately)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
                 }
             }
             .background(Color(.systemGroupedBackground))
@@ -492,35 +510,19 @@ public struct EventDetailView: View {
                         .padding(.horizontal)
                     
                     VStack(spacing: 16) {
-                        // Title
-                        Text(memory.headline)
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                            .padding(.top, 16)
-                        
                         // Collage or Slideshow
                         let chosenAssets = resolveSelectedAssets(selectedPhotoIds: memory.selected_photo_ids, allAssets: cluster.assets)
                         if !chosenAssets.isEmpty {
                             if memory.isSlideshow == true {
                                 SlideshowView(assets: chosenAssets, libraryService: libraryService)
                                     .padding(.horizontal)
+                                    .padding(.top, 16)
                             } else {
                                 MemoryCollageView(assets: chosenAssets, libraryService: libraryService)
                                     .padding(.horizontal)
+                                    .padding(.top, 16)
                             }
                         }
-                        
-                        // Story narrative
-                        Text(memory.story)
-                            .font(.body)
-                            .foregroundColor(.primary)
-                            .lineSpacing(5)
-                            .padding()
-                            .background(Color(uiColor: .systemGroupedBackground))
-                            .cornerRadius(10)
-                            .padding(.horizontal)
                         
                         // Save memory button
                         Button(action: {

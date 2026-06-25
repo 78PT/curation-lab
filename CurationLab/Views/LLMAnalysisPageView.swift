@@ -91,6 +91,7 @@ public struct LLMAnalysisPageView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    VStack(spacing: 16) {
                     
                     // 1. API Configuration Card (Collapsible)
                     VStack(alignment: .leading, spacing: 10) {
@@ -167,8 +168,17 @@ public struct LLMAnalysisPageView: View {
                     }
                     
                     renderPromptHistoryCard()
+                    }
                 }
+                .background(
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        }
+                )
             }
+            .scrollDismissesKeyboard(.immediately)
             .navigationTitle("LLM Labs")
             .background(Color(uiColor: .systemGroupedBackground))
             .sheet(item: $selectedSavedMemory) { memory in
@@ -177,6 +187,12 @@ public struct LLMAnalysisPageView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     albumPickerMenu
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
                 }
             }
             .onAppear {
@@ -660,23 +676,17 @@ public struct LLMAnalysisPageView: View {
                         .padding(.horizontal)
                     
                     VStack(spacing: 16) {
-                        // Title
-                        Text(memory.headline)
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                            .padding(.top, 16)
-                        
                         // Curated collage or slideshow of images chosen by the LLM
                         let chosenAssets = libraryService.loadedAssets.filter { memory.selected_photo_ids.contains($0.localIdentifier) }
                         if !chosenAssets.isEmpty {
                             if memory.isSlideshow == true {
                                 SlideshowView(assets: chosenAssets, libraryService: libraryService)
                                     .padding(.horizontal)
+                                    .padding(.top, 16)
                             } else {
                                 MemoryCollageView(assets: chosenAssets, libraryService: libraryService)
                                     .padding(.horizontal)
+                                    .padding(.top, 16)
                             }
                         } else {
                             // Fallback if LLM ID mapping is fuzzy
@@ -684,21 +694,13 @@ public struct LLMAnalysisPageView: View {
                             if memory.isSlideshow == true {
                                 SlideshowView(assets: Array(fallbackAssets.prefix(8)), libraryService: libraryService)
                                     .padding(.horizontal)
+                                    .padding(.top, 16)
                             } else {
                                 MemoryCollageView(assets: Array(fallbackAssets.prefix(8)), libraryService: libraryService)
                                     .padding(.horizontal)
+                                    .padding(.top, 16)
                             }
                         }
-                        
-                        // Story narrative
-                        Text(memory.story)
-                            .font(.body)
-                            .foregroundColor(.primary)
-                            .lineSpacing(5)
-                            .padding()
-                            .background(Color(uiColor: .systemGroupedBackground))
-                            .cornerRadius(10)
-                            .padding(.horizontal)
                         
                         // Save memory button
                         Button(action: {
@@ -736,15 +738,14 @@ public struct LLMAnalysisPageView: View {
                                 selectedSavedMemory = memory
                             }) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(memory.headline)
+                                    Text("Scrapbook Memory")
                                         .font(.subheadline)
                                         .fontWeight(.bold)
                                         .foregroundColor(.primary)
                                     
-                                    Text(memory.story)
+                                    Text("Saved on \(formatDate(memory.dateCreated)) • \(memory.photoIds.count) photos")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                        .lineLimit(2)
                                 }
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1051,6 +1052,13 @@ public struct LLMAnalysisPageView: View {
     private func getSavedMemories() -> [SavedMemory] {
         guard let data = savedMemoriesJSON.data(using: .utf8) else { return [] }
         return (try? JSONDecoder().decode([SavedMemory].self, from: data)) ?? []
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
     
     private func saveMemoryToScrapbook(_ memory: CuratedMemory) {
@@ -1466,35 +1474,19 @@ struct SavedMemoryDetailView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Title
-                    Text(memory.headline)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                        .padding(.top)
-                    
                     // Collage or slideshow of chosen photos
                     let chosenAssets = libraryService.loadedAssets.filter { memory.photoIds.contains($0.localIdentifier) }
                     if !chosenAssets.isEmpty {
                         if memory.isSlideshow == true {
                             SlideshowView(assets: chosenAssets, libraryService: libraryService)
                                 .padding(.horizontal)
+                                .padding(.top, 20)
                         } else {
                             MemoryCollageView(assets: chosenAssets, libraryService: libraryService)
                                 .padding(.horizontal)
+                                .padding(.top, 20)
                         }
                     }
-                    
-                    // Story Text
-                    Text(memory.story)
-                        .font(.body)
-                        .lineSpacing(6)
-                        .foregroundColor(.primary)
-                        .padding()
-                        .background(Color(uiColor: .secondarySystemGroupedBackground))
-                        .cornerRadius(12)
-                        .padding(.horizontal)
                     
                     Spacer()
                 }
